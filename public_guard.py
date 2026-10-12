@@ -294,6 +294,11 @@ def claude_hook():
     path = os.path.expanduser(m.group(1).strip("'\"")) if m else cwd
     if not os.path.isabs(path):
         path = os.path.join(cwd, path)
+    from pathlib import Path
+    from publish import is_mit
+    if not is_mit(Path(path)):
+        print('MIT is missing. Use AI-OS CI publish.py to prepare the license and scans before publication; existing licenses are preserved.', file=sys.stderr)
+        return 2
     print("public-guard: this makes a repo public, so its whole history is scanned first.", file=sys.stderr)
     rc = scan_repo(path)
     if rc:

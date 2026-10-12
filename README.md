@@ -79,6 +79,23 @@ failures, but authorized users can bypass them. Configure the actual observed
 shared check name (`AI-OS checks`) after its first run; job prefixes may be included
 in the GitHub ruleset picker.
 
+## Publication and MIT
+
+AI-OS defaults its owner's repositories to MIT when published. Private repositories
+do not need a license added just to enroll in CI. For an explicitly authorized release:
+
+```sh
+python3 publish.py /path/to/project --github-repo OWNER/REPOSITORY \
+  --copyright-holder 'Your Name' --apply
+```
+
+Without `--apply`, this previews. With it, a missing MIT license is committed,
+all history is scanned, the branch is pushed, and GitHub visibility changes last.
+Only repositories owned by the authenticated user are supported. Existing licenses
+are preserved; non-MIT licenses and upstream forks need an explicit decision.
+Public CI requires the MIT notice. Repository visibility changes through GitHub's
+website cannot be intercepted by a local Git hook; use the publication command.
+
 ## Private terms and exceptions
 
 Private term files remain machine-local. An explicitly configured

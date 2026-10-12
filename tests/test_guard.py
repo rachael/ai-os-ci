@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import public_guard as guard
 import install
 import run
+import publish
 
 
 class GuardTests(unittest.TestCase):
@@ -100,6 +101,22 @@ class GuardTests(unittest.TestCase):
         self.git('commit', '-m', 'Configure fixture')
         with patch.object(run, 'ROOT', self.root):
             self.assertEqual(run.scan(self.base), 0)
+
+    def test_mit_added_once_with_correct_holder(self):
+        self.assertTrue(publish.prepare_license(self.root, 'Example Maintainer'))
+        self.assertTrue(publish.is_mit(self.root))
+        self.assertIn('Example Maintainer', (self.root / 'LICENSE').read_text())
+        before = (self.root / 'LICENSE').read_text()
+        self.assertFalse(publish.prepare_license(self.root, 'Another Maintainer'))
+        self.assertEqual((self.root / 'LICENSE').read_text(), before)
+
+    def test_existing_non_mit_license_never_replaced(self):
+        path = self.root / 'COPYING'
+        path.write_text('SPDX-License-Identifier: GPL-3.0-only\n')
+        with self.assertRaises(ValueError):
+            publish.prepare_license(self.root, 'Example Maintainer')
+        self.assertEqual(path.read_text(), 'SPDX-License-Identifier: GPL-3.0-only\n')
+        self.assertFalse((self.root / 'LICENSE').exists())
 
 
 if __name__ == '__main__':

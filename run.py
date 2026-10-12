@@ -10,6 +10,7 @@ import subprocess
 import sys
 
 from tools import binary
+from publish import is_mit
 
 HERE = Path(__file__).resolve().parent
 ROOT = Path.cwd()
@@ -89,12 +90,16 @@ def main():
     if base and set(base) == {'0'}:
         base = None
     code = scan(base, args.head)
+    if config()['profile'] == 'public' and not is_mit(ROOT):
+        print('Public project needs its MIT license before release; existing licenses must be reviewed, not overwritten')
+        code = max(code, 1)
     workflows = sorted((ROOT / '.github/workflows').glob('*.y*ml'))
     if workflows:
         code = max(code, subprocess.run([str(binary('actionlint')), '-shellcheck=', *map(str, workflows)], cwd=ROOT).returncode)
     for check in config().get('checks', []):
         print('Check: ' + check['name'], flush=True)
-        code = max(code, subprocess.run(check['command'], cwd=ROOT).returncode)
+        env = dict(os.environ, AI_OS_CI_ROOT=str(HERE))
+        code = max(code, subprocess.run(check['command'], cwd=ROOT, env=env).returncode)
     return code
 
 
