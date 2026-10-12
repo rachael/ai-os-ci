@@ -1,0 +1,42 @@
+name: Shared AI-OS checks
+on:
+  workflow_call:
+    inputs:
+      tooling-ref:
+        description: Immutable ai-os-ci commit, matching the caller's workflow pin
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  checks:
+    name: AI-OS checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: project
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate tooling pin
+        env:
+          TOOLING_REF: ${{ inputs.tooling-ref }}
+        run: '[[ "$TOOLING_REF" =~ ^[0-9a-f]{40}$ ]]'
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: rachael/ai-os-ci
+          ref: ${{ inputs.tooling-ref }}
+          path: tooling
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - name: Install verified scanners
+        run: python3 tooling/tools.py install
+      - name: Check changes and project tests
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          PROFILE: ${{ github.event.repository.private && 'private' || 'public' }}
+          PUBLIC_GUARD_LOG: '-'
+        run: python3 tooling/run.py check --repo project --base "$BASE_SHA" --profile "$PROFILE"

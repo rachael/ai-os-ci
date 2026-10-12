@@ -1,0 +1,3 @@
+# These files define detector vocabularies and synthetic regression cases.
+^public_guard\.py:(health|benefits|legal|finance)$
+^tests/test_guard\.py:(health|benefits|legal|finance)$

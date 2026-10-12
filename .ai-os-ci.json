@@ -1,0 +1,7 @@
+{
+  "schemaVersion": 1,
+  "profile": "public",
+  "checks": [
+    {"name": "Guard and installer regression tests", "command": ["python3", "-m", "unittest", "discover", "-s", "tests", "-v"]}
+  ]
+}

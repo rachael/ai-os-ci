@@ -1,0 +1,37 @@
+name: Request review
+on:
+  workflow_call:
+  pull_request_target:
+    types: [opened, ready_for_review, reopened]
+permissions:
+  pull-requests: write
+jobs:
+  request:
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      # Metadata only: never check out or execute pull-request code in this job.
+      - name: Request configured reviewers
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REVIEWERS: ${{ vars.AI_OS_REVIEWERS || github.repository_owner }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          event = json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          pr = event['pull_request']
+          reviewers = [x.strip() for x in os.environ['REVIEWERS'].split(',') if x.strip()]
+          users = [x for x in reviewers if '/' not in x and x.lower() != pr['user']['login'].lower()]
+          teams = [x.split('/', 1)[1] for x in reviewers if '/' in x]
+          if not users and not teams:
+              print('No eligible reviewer: configure AI_OS_REVIEWERS with another collaborator. No self-review requested.')
+          else:
+              url = os.environ['GITHUB_API_URL'] + '/repos/' + os.environ['GITHUB_REPOSITORY'] + '/pulls/' + str(pr['number']) + '/requested_reviewers'
+              body = json.dumps({'reviewers': users, 'team_reviewers': teams}).encode()
+              request = urllib.request.Request(url, data=body, method='POST', headers={
+                  'Authorization': 'Bearer ' + os.environ['GH_TOKEN'],
+                  'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28'})
+              with urllib.request.urlopen(request, timeout=30) as response:
+                  print('Review requests submitted:', response.status)
+          PY
